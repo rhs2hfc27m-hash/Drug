@@ -1,0 +1,1173 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام الاستفسار عن الأدوية - صيدلية العيادات الفرعية | مستشفى الحسين السلط الحكومي</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Font Awesome Icons CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <!-- Google Arabic Fonts (Cairo & Tajawal) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --font-main: 'Cairo', 'Tajawal', sans-serif;
+        }
+        
+        * {
+            font-family: var(--font-main);
+            scroll-behavior: smooth;
+        }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 7px;
+            height: 7px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #0d9488;
+            border-radius: 6px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #0f766e;
+        }
+
+        /* Glassmorphism & Gradients */
+        .glass-header {
+            background: rgba(255, 255, 255, 0.94);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+
+        .gradient-teal {
+            background: linear-gradient(135deg, #0f766e 0%, #0284c7 100%);
+        }
+
+        .gradient-card {
+            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+        }
+
+        .custom-shadow {
+            box-shadow: 0 10px 30px -5px rgba(13, 148, 136, 0.08), 0 4px 12px -2px rgba(0, 0, 0, 0.03);
+        }
+
+        .card-hover {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .card-hover:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 35px -5px rgba(13, 148, 136, 0.15), 0 8px 15px -5px rgba(0, 0, 0, 0.05);
+        }
+
+        /* Status Badge Pulse Animation */
+        @keyframes pulse-light {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(0.98); }
+        }
+        .animate-pulse-slow {
+            animation: pulse-light 2.5s infinite ease-in-out;
+        }
+
+        /* Print Specific Styles */
+        @media print {
+            body {
+                background: white !important;
+                color: black !important;
+            }
+            .no-print {
+                display: none !important;
+            }
+            .print-only {
+                display: block !important;
+            }
+            .print-break {
+                page-break-inside: avoid;
+            }
+        }
+
+        .print-only {
+            display: none;
+        }
+    </style>
+</head>
+<body class="bg-slate-100/70 text-slate-800 min-h-screen flex flex-col justify-between selection:bg-teal-500 selection:text-white">
+
+    <!-- Toast Notification Overlay Container -->
+    <div id="toast-container" class="fixed bottom-6 left-6 z-50 flex flex-col gap-3 max-w-md w-full pointer-events-none no-print"></div>
+
+    <!-- Navigation Header -->
+    <header class="glass-header border-b border-slate-200/80 sticky top-0 z-40 shadow-sm transition-all no-print">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-col md:flex-row items-center justify-between py-3.5 gap-4">
+                
+                <!-- Brand Title & Logo -->
+                <div class="flex items-center gap-3.5">
+                    <div class="w-13 h-13 sm:w-14 sm:h-14 rounded-2xl gradient-teal flex items-center justify-center text-white shadow-lg shadow-teal-700/20 shrink-0">
+                        <i class="fa-solid fa-hospital-user text-2xl sm:text-3xl"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <span class="px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-teal-100 text-teal-800">صيدلية العيادات الفرعية</span>
+                            <span class="text-slate-400 text-xs hidden sm:inline">•</span>
+                            <span class="text-slate-500 text-xs font-semibold hidden sm:inline">مستشفى الحسين السلط الحكومي</span>
+                        </div>
+                        <h1 class="text-lg sm:text-xl font-extrabold text-slate-900 leading-snug mt-0.5">
+                            نظام الاستفسار المباشر عن توفر الأدوية
+                        </h1>
+                    </div>
+                </div>
+
+                <!-- Navigation Tabs (Patient vs Pharmacist) -->
+                <div class="flex bg-slate-200/80 p-1.5 rounded-2xl border border-slate-300/50 w-full md:w-auto">
+                    <button id="tab-patient-btn" onclick="switchTab('patient')" 
+                            class="flex-1 md:flex-none flex items-center justify-center gap-2 px-5 py-2.5 text-xs sm:text-sm font-bold rounded-xl transition-all duration-200 bg-white text-teal-800 shadow-sm">
+                        <i class="fa-solid fa-user-injured text-teal-600"></i>
+                        <span>بوابة المريض</span>
+                    </button>
+                    <button id="tab-pharmacist-btn" onclick="switchTab('pharmacist')" 
+                            class="flex-1 md:flex-none flex items-center justify-center gap-2 px-5 py-2.5 text-xs sm:text-sm font-bold rounded-xl transition-all duration-200 text-slate-600 hover:text-slate-900">
+                        <i class="fa-solid fa-user-md text-slate-500"></i>
+                        <span>لوحة الصيدلي</span>
+                        <span id="pending-badge" class="hidden px-2 py-0.5 text-[10px] bg-amber-500 text-white rounded-full font-black animate-pulse">0</span>
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </header>
+
+    <!-- Honorary Credits Banner (Shared Top Bar) -->
+    <div class="bg-gradient-to-r from-teal-900 via-slate-900 to-teal-950 text-white py-3 border-b border-teal-800/40 no-print">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between text-xs gap-2">
+            <div class="flex items-center gap-2">
+                <i class="fa-solid fa-award text-amber-400 text-base"></i>
+                <span class="font-bold text-amber-300">إعداد وتصميم:</span>
+                <span class="font-medium text-slate-100">د. عز الدين الخرابشه &nbsp;|&nbsp; د. سوسن الزيادات</span>
+            </div>
+            <div class="flex items-center gap-2 border-t md:border-t-0 border-teal-800/60 pt-1.5 md:pt-0 w-full md:w-auto justify-center">
+                <i class="fa-solid fa-user-tie text-teal-300"></i>
+                <span class="font-bold text-teal-200">تحت إشراف:</span>
+                <span class="font-semibold text-slate-100">عطوفة الدكتور مهند الحديدي</span>
+                <span class="text-teal-400 font-normal">(مدير مستشفى الحسين السلط الحكومي)</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Official Working Hours Alert Banner -->
+    <div class="bg-amber-50 border-b border-amber-200 text-amber-900 py-2.5 px-4 text-xs font-semibold no-print">
+        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+                <i class="fa-solid fa-clock-circle text-amber-600 text-sm"></i>
+                <span><strong>أوقات الرد الرسمية للصيدلي:</strong> الفترة الصباحية (08:30 ص - 09:30 ص) | الفترة المسائية (02:30 م - 03:30 م)</span>
+            </div>
+            <div id="live-status-indicator" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                <span class="w-2 h-2 rounded-full bg-amber-500 animate-ping"></span>
+                <span>جاري تحميل حالة الخدمة...</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN APP CONTAINER -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-grow w-full">
+
+        <!-- ========================================== -->
+        <!-- VIEW 1: PATIENT PORTAL -->
+        <!-- ========================================== -->
+        <section id="view-patient" class="space-y-8">
+            
+            <!-- Hero Announcement Banner -->
+            <div class="rounded-3xl gradient-teal text-white p-6 sm:p-10 shadow-xl shadow-teal-900/10 relative overflow-hidden">
+                <div class="relative z-10 max-w-3xl space-y-3">
+                    <div class="inline-flex items-center gap-2 px-3 py-1 bg-white/15 backdrop-blur-md rounded-full text-xs font-bold text-teal-100 border border-white/20">
+                        <i class="fa-solid fa-clock-rotate-left text-amber-300"></i>
+                        <span>استعلام مباشر برقمك الوطني</span>
+                    </div>
+                    <h2 class="text-2xl sm:text-4xl font-extrabold leading-tight">
+                        استعلم عن توفر علاجك في <span class="text-teal-200 underline decoration-teal-400 decoration-wavy">صيدلية العيادات الفرعية</span> قبل حضورك
+                    </h2>
+                    <p class="text-teal-50 text-xs sm:text-sm leading-relaxed max-w-2xl">
+                        يمكنك تقديم طلب الاستفسار في أي وقت على مدار الساعة، ويقوم الصيدلي المختص بمعالجة طلبك والإجابة عليه بدقة خلال أوقات الرد المحددة.
+                    </p>
+                </div>
+                <!-- Background Decorative Graphic -->
+                <i class="fa-solid fa-pills absolute -left-6 -bottom-10 text-white/10 text-[180px] pointer-events-none transform -rotate-12"></i>
+            </div>
+
+            <!-- Two Columns Grid: Request Form vs Status Tracking -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                
+                <!-- Left Column: Submit New Inquiry Form (7 Cols) -->
+                <div class="lg:col-span-7 bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/80 custom-shadow space-y-6">
+                    
+                    <div class="flex items-center gap-3.5 pb-4 border-b border-slate-100">
+                        <div class="w-11 h-11 rounded-2xl bg-teal-50 text-teal-700 flex items-center justify-center font-bold text-xl shrink-0">
+                            <i class="fa-solid fa-paper-plane"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-bold text-slate-800">تقديم طلب استفسار جديد</h3>
+                            <p class="text-xs text-slate-500">يرجى ملء الحقول التالية بدقة لتسهيل فحص المخزون</p>
+                        </div>
+                    </div>
+
+                    <form id="inquiry-form" onsubmit="handlePatientSubmit(event)" class="space-y-5">
+                        
+                        <!-- Full Name -->
+                        <div>
+                            <label for="patient-name" class="block text-xs font-bold text-slate-700 uppercase mb-2">
+                                اسم المريض الثلاثي أو الرباعي <span class="text-rose-500">*</span>
+                            </label>
+                            <div class="relative">
+                                <span class="absolute inset-y-0 right-0 flex items-center pr-3.5 text-slate-400 pointer-events-none">
+                                    <i class="fa-regular fa-user text-sm"></i>
+                                </span>
+                                <input type="text" id="patient-name" required placeholder="مثال: محمد أحمد العبدالله"
+                                       class="w-full pr-10 pl-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs sm:text-sm font-medium focus:outline-none focus:ring-2 focus:ring-teal-600 focus:bg-white transition-all">
+                            </div>
+                        </div>
+
+                        <!-- National ID -->
+                        <div>
+                            <label for="national-id" class="block text-xs font-bold text-slate-700 uppercase mb-2">
+                                الرقم الوطني (10 أرقام) <span class="text-rose-500">*</span>
+                            </label>
+                            <div class="relative">
+                                <span class="absolute inset-y-0 right-0 flex items-center pr-3.5 text-slate-400 pointer-events-none">
+                                    <i class="fa-regular fa-id-card text-sm"></i>
+                                </span>
+                                <input type="text" id="national-id" required maxlength="10" pattern="[0-9]{10}"
+                                       placeholder="أدخل 10 أرقام، مثال: 9981012345"
+                                       oninput="this.value = this.value.replace(/[^0-9]/g, '')"
+                                       class="w-full pr-10 pl-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs sm:text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-teal-600 focus:bg-white transition-all text-right font-mono">
+                            </div>
+                            <p class="text-[11px] text-slate-400 mt-1">يُستخدم الرقم الوطني كمفتاح آمن لمتابعة حالة استفساراتك.</p>
+                        </div>
+
+                        <!-- Clinic Dropdown (Restricted exclusively to Sub-Clinics) -->
+                        <div>
+                            <label for="clinic-name" class="block text-xs font-bold text-slate-700 uppercase mb-2">
+                                العيادة المعالجة (صيدلية العيادات الفرعية حصراً) <span class="text-rose-500">*</span>
+                            </label>
+                            <div class="relative">
+                                <span class="absolute inset-y-0 right-0 flex items-center pr-3.5 text-slate-400 pointer-events-none">
+                                    <i class="fa-solid fa-clinic-medical text-sm"></i>
+                                </span>
+                                <select id="clinic-name" required
+                                        class="w-full pr-10 pl-8 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs sm:text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-600 focus:bg-white transition-all appearance-none">
+                                    <option value="" disabled selected>اختر العيادة المتابِع لديها...</option>
+                                    <option value="الجلدية">الجلدية</option>
+                                    <option value="النسائية">النسائية</option>
+                                    <option value="أنف وأذن وحنجرة">أنف وأذن وحنجرة</option>
+                                    <option value="الأطفال">الأطفال</option>
+                                    <option value="العظام">العظام</option>
+                                    <option value="هضمي أطفال">هضمي أطفال</option>
+                                    <option value="غدد أطفال">غدد أطفال</option>
+                                    <option value="النفسية">النفسية</option>
+                                    <option value="جراحة وجه وفكين">جراحة وجه وفكين</option>
+                                    <option value="صدرية أطفال">صدرية أطفال</option>
+                                    <option value="الأسنان">الأسنان</option>
+                                    <option value="اللثة">اللثة</option>
+                                    <option value="العيون (الاستفسار عن العدسات)">العيون (الاستفسار عن العدسات)</option>
+                                    <option value="جراحة أطفال">جراحة أطفال</option>
+                                    <option value="عمليات نهارية">عمليات نهارية</option>
+                                </select>
+                                <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400 pointer-events-none">
+                                    <i class="fa-solid fa-chevron-down text-xs"></i>
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Drug Name & Prescription Details -->
+                        <div>
+                            <label for="medicine-name" class="block text-xs font-bold text-slate-700 uppercase mb-2">
+                                تفاصيل اسم الدواء والتركيز <span class="text-rose-500">*</span>
+                            </label>
+                            <textarea id="medicine-name" required rows="3"
+                                      placeholder="اكتب اسم الدواء بالكامل باللغة العربية أو الإنجليزية مع التركيز (مثل: أوجمنتين 625 ملغ، أو قطرة عين...)"
+                                      class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs sm:text-sm font-medium focus:outline-none focus:ring-2 focus:ring-teal-600 focus:bg-white transition-all"></textarea>
+                        </div>
+
+                        <!-- Form Action Button -->
+                        <button type="submit"
+                                class="w-full py-4 px-6 gradient-teal text-white font-bold rounded-2xl shadow-lg shadow-teal-700/25 hover:opacity-95 active:scale-[0.99] transition-all flex items-center justify-center gap-2 text-sm">
+                            <i class="fa-solid fa-paper-plane text-base"></i>
+                            <span>إرسال الاستفسار للصيدلي</span>
+                        </button>
+                    </form>
+
+                </div>
+
+                <!-- Right Column: Track Inquiry Result Panel (5 Cols) -->
+                <div class="lg:col-span-5 bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/80 custom-shadow space-y-6">
+                    
+                    <div class="flex items-center gap-3.5 pb-4 border-b border-slate-100">
+                        <div class="w-11 h-11 rounded-2xl bg-sky-50 text-sky-700 flex items-center justify-center font-bold text-xl shrink-0">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-bold text-slate-800">متابعة حالة الطلب</h3>
+                            <p class="text-xs text-slate-500">استعلم برقمك الوطني لمشاهدة رد الصيدلي المباشر</p>
+                        </div>
+                    </div>
+
+                    <!-- Search Input Box -->
+                    <div class="space-y-3">
+                        <label for="track-national-id" class="block text-xs font-bold text-slate-700">أدخل الرقم الوطني للمتابعة</label>
+                        <div class="flex gap-2">
+                            <input type="text" id="track-national-id" maxlength="10"
+                                   placeholder="أدخل الرقم الوطني..."
+                                   oninput="this.value = this.value.replace(/[^0-9]/g, '')"
+                                   onkeyup="if(event.key === 'Enter') trackInquiryByNationalId()"
+                                   class="flex-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs sm:text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-sky-600 focus:bg-white transition-all font-mono text-right">
+                            <button onclick="trackInquiryByNationalId()"
+                                    class="px-5 py-3 bg-sky-700 hover:bg-sky-800 text-white font-bold rounded-2xl transition-all text-xs sm:text-sm flex items-center gap-2 shrink-0 shadow-md shadow-sky-700/20">
+                                <i class="fa-solid fa-search"></i>
+                                <span>استعلام</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Dynamic Results Render Area -->
+                    <div id="track-results-container" class="pt-2">
+                        <div class="text-center py-10 px-4 text-slate-400 border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50/50">
+                            <i class="fa-regular fa-folder-open text-4xl mb-3 text-slate-300"></i>
+                            <p class="text-xs font-semibold text-slate-600">لم يتم إجراء استعلام بعد</p>
+                            <p class="text-[11px] text-slate-400 mt-1">أدخل رقمك الوطني المكون من 10 أرقام واضغط "استعلام" لاستعراض رد الصيدلي.</p>
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+        <!-- ========================================== -->
+        <!-- VIEW 2: PHARMACIST DASHBOARD -->
+        <!-- ========================================== -->
+        <section id="view-pharmacist" class="hidden space-y-6">
+            
+            <!-- Dashboard Stats Overview Cards -->
+            <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+                
+                <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 custom-shadow flex items-center justify-between">
+                    <div>
+                        <p class="text-[11px] font-bold text-slate-500 uppercase">إجمالي الاستفسارات</p>
+                        <h4 id="stat-total" class="text-xl sm:text-2xl font-black text-slate-800 mt-1">0</h4>
+                    </div>
+                    <div class="w-10 h-10 sm:w-11 sm:h-11 bg-slate-100 text-slate-700 rounded-2xl flex items-center justify-center text-lg shrink-0">
+                        <i class="fa-solid fa-list-check"></i>
+                    </div>
+                </div>
+
+                <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 custom-shadow flex items-center justify-between">
+                    <div>
+                        <p class="text-[11px] font-bold text-amber-600 uppercase">بانتظار الرد</p>
+                        <h4 id="stat-pending" class="text-xl sm:text-2xl font-black text-amber-600 mt-1">0</h4>
+                    </div>
+                    <div class="w-10 h-10 sm:w-11 sm:h-11 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center text-lg shrink-0">
+                        <i class="fa-solid fa-clock"></i>
+                    </div>
+                </div>
+
+                <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 custom-shadow flex items-center justify-between">
+                    <div>
+                        <p class="text-[11px] font-bold text-emerald-600 uppercase">متوفر بالصيدلية</p>
+                        <h4 id="stat-available" class="text-xl sm:text-2xl font-black text-emerald-600 mt-1">0</h4>
+                    </div>
+                    <div class="w-10 h-10 sm:w-11 sm:h-11 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center text-lg shrink-0">
+                        <i class="fa-solid fa-circle-check"></i>
+                    </div>
+                </div>
+
+                <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 custom-shadow flex items-center justify-between">
+                    <div>
+                        <p class="text-[11px] font-bold text-rose-600 uppercase">غير متوفر</p>
+                        <h4 id="stat-unavailable" class="text-xl sm:text-2xl font-black text-rose-600 mt-1">0</h4>
+                    </div>
+                    <div class="w-10 h-10 sm:w-11 sm:h-11 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center text-lg shrink-0">
+                        <i class="fa-solid fa-circle-xmark"></i>
+                    </div>
+                </div>
+
+                <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 custom-shadow col-span-2 md:col-span-1 flex items-center justify-between">
+                    <div>
+                        <p class="text-[11px] font-bold text-sky-600 uppercase">تمت الإجابة عليها</p>
+                        <h4 id="stat-replied" class="text-xl sm:text-2xl font-black text-sky-600 mt-1">0</h4>
+                    </div>
+                    <div class="w-10 h-10 sm:w-11 sm:h-11 bg-sky-50 text-sky-600 rounded-2xl flex items-center justify-center text-lg shrink-0">
+                        <i class="fa-solid fa-reply-all"></i>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Controls, Search & Filter Bar -->
+            <div class="bg-white p-5 rounded-3xl border border-slate-200/80 custom-shadow space-y-4 no-print">
+                <div class="flex flex-col lg:flex-row gap-3 items-center justify-between">
+                    
+                    <!-- Search Input -->
+                    <div class="relative w-full lg:w-80">
+                        <span class="absolute inset-y-0 right-0 flex items-center pr-3.5 text-slate-400 pointer-events-none">
+                            <i class="fa-solid fa-search text-xs"></i>
+                        </span>
+                        <input type="text" id="admin-search" oninput="renderPharmacistDashboard()"
+                               placeholder="بحث بالاسم، الرقم الوطني، أو الدواء..."
+                               class="w-full pr-10 pl-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-teal-600">
+                    </div>
+
+                    <!-- Filter Options -->
+                    <div class="flex flex-wrap items-center gap-2 w-full lg:w-auto justify-end">
+                        
+                        <!-- Status Filter -->
+                        <select id="admin-status-filter" onchange="renderPharmacistDashboard()"
+                                class="px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-600">
+                            <option value="ALL">جميع الحالات</option>
+                            <option value="PENDING">بانتظار الرد فقط</option>
+                            <option value="AVAILABLE">متوفر فقط</option>
+                            <option value="UNAVAILABLE">غير متوفر فقط</option>
+                            <option value="REDIRECTED">توجيه خاص / رئيسية</option>
+                        </select>
+
+                        <!-- Sub-Clinic Filter -->
+                        <select id="admin-clinic-filter" onchange="renderPharmacistDashboard()"
+                                class="px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-600">
+                            <option value="ALL">جميع عيادات صيدليتنا (15)</option>
+                            <option value="الجلدية">الجلدية</option>
+                            <option value="النسائية">النسائية</option>
+                            <option value="أنف وأذن وحنجرة">أنف وأذن وحنجرة</option>
+                            <option value="الأطفال">الأطفال</option>
+                            <option value="العظام">العظام</option>
+                            <option value="هضمي أطفال">هضمي أطفال</option>
+                            <option value="غدد أطفال">غدد أطفال</option>
+                            <option value="النفسية">النفسية</option>
+                            <option value="جراحة وجه وفكين">جراحة وجه وفكين</option>
+                            <option value="صدرية أطفال">صدرية أطفال</option>
+                            <option value="الأسنان">الأسنان</option>
+                            <option value="اللثة">اللثة</option>
+                            <option value="العيون (الاستفسار عن العدسات)">العيون (العدسات)</option>
+                            <option value="جراحة أطفال">جراحة أطفال</option>
+                            <option value="عمليات نهارية">عمليات نهارية</option>
+                        </select>
+
+                        <!-- Print Daily Sheet -->
+                        <button onclick="window.print()" 
+                                class="px-4 py-2.5 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-2xl text-xs transition-all flex items-center gap-1.5 shadow-sm">
+                            <i class="fa-solid fa-print"></i>
+                            <span>طباعة الكشف</span>
+                        </button>
+
+                        <!-- Export Excel CSV -->
+                        <button onclick="exportToCSV()" 
+                                class="px-4 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-2xl text-xs transition-all flex items-center gap-1.5 shadow-sm shadow-emerald-700/20">
+                            <i class="fa-solid fa-file-excel"></i>
+                            <span>تصدير Excel</span>
+                        </button>
+
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Inquiries List Container (Interactive Cards) -->
+            <div id="admin-inquiries-list" class="space-y-4">
+                <!-- Populated dynamically via JS -->
+            </div>
+
+            <!-- Printable Layout Table (Only Visible When Printing) -->
+            <div class="print-only p-4 space-y-4">
+                <div class="text-center border-b pb-4">
+                    <h2 class="text-xl font-bold">مستشفى الحسين السلط الحكومي - صيدلية العيادات الفرعية</h2>
+                    <h3 class="text-md font-semibold text-slate-700">تقرير استفسارات الأدوية اليومي</h3>
+                    <p class="text-xs text-slate-500 mt-1">تاريخ التقرير: <span id="print-date"></span></p>
+                </div>
+                <table class="w-full text-xs text-right border-collapse border border-slate-300">
+                    <thead>
+                        <tr class="bg-slate-100">
+                            <th class="border border-slate-300 p-2">رقم الطلب</th>
+                            <th class="border border-slate-300 p-2">اسم المريض</th>
+                            <th class="border border-slate-300 p-2">الرقم الوطني</th>
+                            <th class="border border-slate-300 p-2">العيادة</th>
+                            <th class="border border-slate-300 p-2">الدواء المطلوب</th>
+                            <th class="border border-slate-300 p-2">الحالة</th>
+                            <th class="border border-slate-300 p-2">رد الصيدلية</th>
+                        </tr>
+                    </thead>
+                    <tbody id="print-table-body">
+                        <!-- Populated via JS for print -->
+                    </tbody>
+                </table>
+            </div>
+
+        </section>
+
+    </main>
+
+    <!-- Modal Dialog for Pharmacist Response Editor -->
+    <div id="reply-modal" class="fixed inset-0 z-50 hidden bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 no-print">
+        <div class="bg-white w-full max-w-lg rounded-3xl shadow-2xl border border-slate-100 overflow-hidden transform transition-all">
+            
+            <!-- Modal Header -->
+            <div class="p-5 gradient-teal text-white flex justify-between items-center">
+                <div class="flex items-center gap-2.5">
+                    <i class="fa-solid fa-reply-all text-xl"></i>
+                    <div>
+                        <h3 class="font-bold text-base">الرد على استفسار المريض</h3>
+                        <p class="text-[11px] text-teal-100">صيدلية العيادات الفرعية</p>
+                    </div>
+                </div>
+                <button onclick="closeReplyModal()" class="text-white/80 hover:text-white transition-all text-lg">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Modal Body Content -->
+            <div class="p-6 space-y-5">
+                
+                <!-- Patient Request Details Summary -->
+                <div id="modal-patient-summary" class="bg-slate-50 p-4 rounded-2xl border border-slate-200 text-xs text-slate-700 space-y-1.5">
+                    <!-- Dynamic Summary Inserted Here -->
+                </div>
+
+                <!-- Quick Response Template Buttons -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-800 mb-2">قوالب الرد السريعة بنقرة واحدة:</label>
+                    <div class="grid grid-cols-1 gap-2">
+                        <button type="button" onclick="applyQuickTemplate('AVAILABLE')" 
+                                class="text-right p-2.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-semibold border border-emerald-200/80 transition-all flex items-center gap-2">
+                            <i class="fa-solid fa-circle-check text-emerald-600"></i>
+                            <span>متوفر في صيدلية العيادات الفرعية، يمكنك المراجعة لاستلامه.</span>
+                        </button>
+                        
+                        <button type="button" onclick="applyQuickTemplate('UNAVAILABLE')" 
+                                class="text-right p-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-800 text-xs font-semibold border border-rose-200/80 transition-all flex items-center gap-2">
+                            <i class="fa-solid fa-circle-xmark text-rose-600"></i>
+                            <span>غير متوفر حالياً - يرجى مراجعة الطبيب المعالج للبديل.</span>
+                        </button>
+
+                        <button type="button" onclick="applyQuickTemplate('MAIN_PHARMACY')" 
+                                class="text-right p-2.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-800 text-xs font-semibold border border-amber-200/80 transition-all flex items-center gap-2">
+                            <i class="fa-solid fa-hospital-user text-amber-600"></i>
+                            <span>العلاج متوفر في صيدلية العيادات الخارجية الرئيسية وليس الفرعية.</span>
+                        </button>
+
+                        <button type="button" onclick="applyQuickTemplate('ALT_AVAILABLE')" 
+                                class="text-right p-2.5 rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-800 text-xs font-semibold border border-sky-200/80 transition-all flex items-center gap-2">
+                            <i class="fa-solid fa-capsules text-sky-600"></i>
+                            <span>متوفر البديل المعتمد التالي: [يرجى تحديد اسم البديل هنا]</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Status Picker Dropdown -->
+                <div>
+                    <label for="modal-status-select" class="block text-xs font-bold text-slate-800 mb-2">تحديث حالة التوفر:</label>
+                    <select id="modal-status-select" 
+                            class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-600">
+                        <option value="AVAILABLE">متوفر (علامة خضراء)</option>
+                        <option value="UNAVAILABLE">غير متوفر (علامة حمراء)</option>
+                        <option value="REDIRECTED">يتطلب مراجعة / صيدلية رئيسية (برتقالي)</option>
+                        <option value="PENDING">قيد الانتظار / قيد الفحص</option>
+                    </select>
+                </div>
+
+                <!-- Response Textarea -->
+                <div>
+                    <label for="modal-reply-text" class="block text-xs font-bold text-slate-800 mb-2">نص الرد النهائي الموجه للمريض:</label>
+                    <textarea id="modal-reply-text" rows="3" 
+                              placeholder="اكتب ردك الدقيق هنا أو استخدم القوالب السريعة أعلاه..."
+                              class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-teal-600"></textarea>
+                </div>
+
+            </div>
+
+            <!-- Modal Action Buttons -->
+            <div class="p-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-2">
+                <button onclick="closeReplyModal()" 
+                        class="px-4 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-xl text-xs transition-all">
+                    إلغاء
+                </button>
+                <button onclick="savePharmacistReply()" 
+                        class="px-5 py-2.5 gradient-teal text-white font-bold rounded-xl text-xs shadow-md shadow-teal-700/20 hover:opacity-95 transition-all">
+                    حفظ وإرسال الرد
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Application Footer -->
+    <footer class="bg-white border-t border-slate-200 py-6 mt-12 text-center text-xs text-slate-500 no-print">
+        <div class="max-w-7xl mx-auto px-4 space-y-2">
+            <p class="font-bold text-slate-700">© 2026 مستشفى الحسين السلط الحكومي - صيدلية العيادات الفرعية</p>
+            <p class="text-slate-400">إعداد وتصميم: <span class="text-slate-600 font-semibold">د. عز الدين الخرابشه &amp; د. سوسن الزيادات</span> | تحت إشراف: <span class="text-slate-600 font-semibold">عطوفة الدكتور مهند الحديدي</span></p>
+        </div>
+    </footer>
+
+    <script>
+        /* STORAGE KEY & APP STATE variables */
+        const STORAGE_KEY = 'sub_pharmacy_inquiries_db_v3';
+        let inquiries = [];
+        let activeInquiryId = null;
+
+        /* INITIAL MOCK DATA (Sample data if local storage is empty) */
+        const initialMockData = [
+            {
+                id: 'INQ-901',
+                patientName: 'أحمد محمود العبادي',
+                nationalId: '9981023456',
+                clinicName: 'الأطفال',
+                medicineName: 'شراب أدول للأطفال + بخاخ فنتولين',
+                status: 'AVAILABLE', // AVAILABLE, UNAVAILABLE, REDIRECTED, PENDING
+                replyText: 'متوفر في صيدلية العيادات الفرعية، يمكنك المراجعة لاستلامه.',
+                submittedAt: new Date(Date.now() - 3600000 * 3).toISOString(),
+                repliedAt: new Date(Date.now() - 3600000 * 1).toISOString()
+            },
+            {
+                id: 'INQ-902',
+                patientName: 'سارة خالد الزعبي',
+                nationalId: '9992018877',
+                clinicName: 'الجلدية',
+                medicineName: 'مرهم فيوسيدين (Fucidin) وكريم إيلوكوم',
+                status: 'UNAVAILABLE',
+                replyText: 'غير متوفر حالياً - يرجى مراجعة الطبيب المعالج للبديل.',
+                submittedAt: new Date(Date.now() - 3600000 * 5).toISOString(),
+                repliedAt: new Date(Date.now() - 3600000 * 2).toISOString()
+            },
+            {
+                id: 'INQ-903',
+                patientName: 'عمر توفيق الحياري',
+                nationalId: '9951034422',
+                clinicName: 'العظام',
+                medicineName: 'حبوب بروفين 600 ملغ ومسكن ريلافين',
+                status: 'REDIRECTED',
+                replyText: 'العلاج متوفر في صيدلية العيادات الخارجية الرئيسية وليس الفرعية.',
+                submittedAt: new Date(Date.now() - 3600000 * 8).toISOString(),
+                repliedAt: new Date(Date.now() - 3600000 * 4).toISOString()
+            },
+            {
+                id: 'INQ-904',
+                patientName: 'مريم يوسف العطيات',
+                nationalId: '9972045511',
+                clinicName: 'النسائية',
+                medicineName: 'حبوب حديد فيروجلوبين + حمض الفوليك 5 ملغ',
+                status: 'PENDING',
+                replyText: '',
+                submittedAt: new Date(Date.now() - 3600000 * 1).toISOString(),
+                repliedAt: null
+            }
+        ];
+
+        window.onload = function() {
+            loadInquiriesFromStorage();
+            updatePendingBadge();
+            checkLiveWorkingHoursStatus();
+            renderPharmacistDashboard();
+
+            // Periodically refresh working hours status
+            setInterval(checkLiveWorkingHoursStatus, 60000);
+        };
+
+        function loadInquiriesFromStorage() {
+            const stored = localStorage.getItem(STORAGE_KEY);
+            if (stored) {
+                try {
+                    inquiries = JSON.parse(stored);
+                } catch (e) {
+                    console.error('Failed to parse localStorage data', e);
+                    inquiries = initialMockData;
+                    saveInquiriesToStorage();
+                }
+            } else {
+                inquiries = initialMockData;
+                saveInquiriesToStorage();
+            }
+        }
+
+        function saveInquiriesToStorage() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(inquiries));
+            updatePendingBadge();
+        }
+
+        function switchTab(tab) {
+            const patientView = document.getElementById('view-patient');
+            const pharmacistView = document.getElementById('view-pharmacist');
+            const patientBtn = document.getElementById('tab-patient-btn');
+            const pharmacistBtn = document.getElementById('tab-pharmacist-btn');
+
+            if (tab === 'patient') {
+                patientView.classList.remove('hidden');
+                pharmacistView.classList.add('hidden');
+
+                patientBtn.className = 'flex-1 md:flex-none flex items-center justify-center gap-2 px-5 py-2.5 text-xs sm:text-sm font-bold rounded-xl transition-all duration-200 bg-white text-teal-800 shadow-sm';
+                pharmacistBtn.className = 'flex-1 md:flex-none flex items-center justify-center gap-2 px-5 py-2.5 text-xs sm:text-sm font-bold rounded-xl transition-all duration-200 text-slate-600 hover:text-slate-900';
+            } else {
+                patientView.classList.add('hidden');
+                pharmacistView.classList.remove('hidden');
+
+                pharmacistBtn.className = 'flex-1 md:flex-none flex items-center justify-center gap-2 px-5 py-2.5 text-xs sm:text-sm font-bold rounded-xl transition-all duration-200 bg-white text-teal-800 shadow-sm';
+                patientBtn.className = 'flex-1 md:flex-none flex items-center justify-center gap-2 px-5 py-2.5 text-xs sm:text-sm font-bold rounded-xl transition-all duration-200 text-slate-600 hover:text-slate-900';
+
+                renderPharmacistDashboard();
+            }
+        }
+
+        function updatePendingBadge() {
+            const pendingCount = inquiries.filter(i => i.status === 'PENDING').length;
+            const badge = document.getElementById('pending-badge');
+            if (pendingCount > 0) {
+                badge.innerText = pendingCount;
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+        }
+
+        function checkLiveWorkingHoursStatus() {
+            const now = new Date();
+            const hours = now.getHours();
+            const minutes = now.getMinutes();
+            const totalMin = hours * 60 + minutes;
+
+            // Morning shift: 08:30 to 09:30 (510 to 570 mins)
+            // Evening shift: 14:30 to 15:30 (870 to 930 mins)
+            const isMorningShift = totalMin >= 510 && totalMin <= 570;
+            const isEveningShift = totalMin >= 870 && totalMin <= 930;
+
+            const indicator = document.getElementById('live-status-indicator');
+            if (isMorningShift || isEveningShift) {
+                indicator.className = "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300";
+                indicator.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span><span>فترة الرد المباشر نشطة الآن</span>`;
+            } else {
+                indicator.className = "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-sky-100 text-sky-800 border border-sky-300";
+                indicator.innerHTML = `<span class="w-2 h-2 rounded-full bg-sky-500"></span><span>استقبال الاستفسارات مستمر (الرد بالفترة القادمة)</span>`;
+            }
+        }
+
+        function handlePatientSubmit(e) {
+            e.preventDefault();
+
+            const nameInput = document.getElementById('patient-name');
+            const idInput = document.getElementById('national-id');
+            const clinicInput = document.getElementById('clinic-name');
+            const medInput = document.getElementById('medicine-name');
+
+            if (idInput.value.length !== 10) {
+                showToast('يرجى إدخال رقم وطني صحيح يتكون من 10 أرقام بالضبط', 'error');
+                return;
+            }
+
+            const newInquiry = {
+                id: 'INQ-' + Math.floor(100 + Math.random() * 900),
+                patientName: nameInput.value.trim(),
+                nationalId: idInput.value.trim(),
+                clinicName: clinicInput.value,
+                medicineName: medInput.value.trim(),
+                status: 'PENDING',
+                replyText: '',
+                submittedAt: new Date().toISOString(),
+                repliedAt: null
+            };
+
+            inquiries.unshift(newInquiry);
+            saveInquiriesToStorage();
+
+            document.getElementById('inquiry-form').reset();
+            showToast('تم إرسال استفسارك بنجاح! رقم المتابعة المرجعي: ' + newInquiry.id, 'success');
+
+            // Automatically set track input and trigger inquiry
+            document.getElementById('track-national-id').value = newInquiry.nationalId;
+            trackInquiryByNationalId();
+        }
+
+        function trackInquiryByNationalId() {
+            const nationalId = document.getElementById('track-national-id').value.trim();
+            const container = document.getElementById('track-results-container');
+
+            if (!nationalId || nationalId.length !== 10) {
+                showToast('يرجى إدخال الرقم الوطني المكون من 10 أرقام', 'error');
+                return;
+            }
+
+            const matched = inquiries.filter(i => i.nationalId === nationalId);
+
+            if (matched.length === 0) {
+                container.innerHTML = `
+                    <div class="bg-amber-50 border border-amber-200/80 text-amber-900 p-5 rounded-2xl text-center space-y-2">
+                        <i class="fa-solid fa-triangle-exclamation text-2xl text-amber-500"></i>
+                        <p class="font-bold text-xs sm:text-sm">لم يتم العثور على استفسارات بهذا الرقم الوطني</p>
+                        <p class="text-[11px] text-amber-700">تأكد من إدخال الرقم بشكل صحيح أو أرسل استفساراً جديداً عبر النموذج.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '<div class="space-y-3.5 max-h-[460px] overflow-y-auto pr-1">';
+            matched.forEach(item => {
+                const badgeInfo = getStatusBadgeInfo(item.status);
+                const timeAgo = formatDate(item.submittedAt);
+
+                html += `
+                    <div class="p-4 sm:p-5 rounded-2xl border ${badgeInfo.borderClass} ${badgeInfo.bgClass} space-y-3 text-xs card-hover">
+                        
+                        <div class="flex justify-between items-start border-b border-slate-200/60 pb-2.5">
+                            <div>
+                                <span class="font-extrabold text-slate-800 text-xs sm:text-sm block">${item.clinicName}</span>
+                                <span class="text-[10px] text-slate-400">رقم الطلب: <span class="font-mono text-slate-600">${item.id}</span></span>
+                            </div>
+                            <span class="px-3 py-1 rounded-full font-bold text-[10px] flex items-center gap-1.5 ${badgeInfo.badgeClass}">
+                                <i class="fa-solid ${badgeInfo.icon}"></i>
+                                <span>${badgeInfo.text}</span>
+                            </span>
+                        </div>
+
+                        <div>
+                            <span class="text-slate-500 font-bold block mb-1">الدواء/العلاج الاستفسار عنه:</span>
+                            <p class="font-semibold text-slate-800 bg-white/80 p-2.5 rounded-xl border border-slate-200/60">${escapeHtml(item.medicineName)}</p>
+                        </div>
+
+                        ${item.replyText ? `
+                            <div class="pt-2 border-t border-slate-200/60 space-y-1">
+                                <span class="font-bold text-slate-700 block flex items-center gap-1">
+                                    <i class="fa-solid fa-user-md text-teal-600"></i>
+                                    <span>إجابة وتوجيه الصيدلي:</span>
+                                </span>
+                                <div class="p-3 bg-white rounded-xl border border-teal-200/80 text-slate-800 font-bold leading-relaxed shadow-sm">
+                                    ${escapeHtml(item.replyText)}
+                                </div>
+                            </div>
+                        ` : `
+                            <div class="p-2.5 bg-amber-100/60 text-amber-800 rounded-xl text-[11px] font-medium italic flex items-center gap-2">
+                                <i class="fa-solid fa-spinner fa-spin text-amber-600"></i>
+                                <span>جاري تفقد رصيد المخزون... وسيتم إدراج الرد في أقرب فترة مخصصة.</span>
+                            </div>
+                        `}
+
+                        <div class="text-[10px] text-slate-400 text-left pt-1 font-mono">
+                            تاريخ تقديم الطلب: ${timeAgo}
+                        </div>
+
+                    </div>
+                `;
+            });
+            html += '</div>';
+
+            container.innerHTML = html;
+        }
+
+        function renderPharmacistDashboard() {
+            const listContainer = document.getElementById('admin-inquiries-list');
+            const printTableBody = document.getElementById('print-table-body');
+            const searchVal = document.getElementById('admin-search').value.toLowerCase().trim();
+            const statusFilter = document.getElementById('admin-status-filter').value;
+            const clinicFilter = document.getElementById('admin-clinic-filter').value;
+
+            // Recalculate KPIs
+            const total = inquiries.length;
+            const pending = inquiries.filter(i => i.status === 'PENDING').length;
+            const available = inquiries.filter(i => i.status === 'AVAILABLE').length;
+            const unavailable = inquiries.filter(i => i.status === 'UNAVAILABLE').length;
+            const replied = inquiries.filter(i => i.status !== 'PENDING').length;
+
+            document.getElementById('stat-total').innerText = total;
+            document.getElementById('stat-pending').innerText = pending;
+            document.getElementById('stat-available').innerText = available;
+            document.getElementById('stat-unavailable').innerText = unavailable;
+            document.getElementById('stat-replied').innerText = replied;
+
+            // Date for print
+            document.getElementById('print-date').innerText = new Date().toLocaleDateString('ar-JO', { dateStyle: 'full' });
+
+            // Apply Filters
+            let filtered = inquiries.filter(item => {
+                const matchesSearch = item.patientName.toLowerCase().includes(searchVal) || 
+                                      item.nationalId.includes(searchVal) || 
+                                      item.medicineName.toLowerCase().includes(searchVal) ||
+                                      item.id.toLowerCase().includes(searchVal);
+                const matchesStatus = statusFilter === 'ALL' || item.status === statusFilter;
+                const matchesClinic = clinicFilter === 'ALL' || item.clinicName === clinicFilter;
+
+                return matchesSearch && matchesStatus && matchesClinic;
+            });
+
+            if (filtered.length === 0) {
+                listContainer.innerHTML = `
+                    <div class="bg-white p-10 rounded-3xl border border-slate-200 text-center text-slate-400 custom-shadow">
+                        <i class="fa-solid fa-inbox text-5xl mb-3 text-slate-300"></i>
+                        <p class="font-bold text-slate-700 text-sm">لا توجد طلبات مطابقة لمعايير البحث</p>
+                        <p class="text-xs text-slate-400 mt-1">تأكد من تعديل الفلاتر أو تنظيف خانة البحث.</p>
+                    </div>
+                `;
+                printTableBody.innerHTML = '<tr><td colspan="7" class="text-center p-4">لا توجد بيانات مطابقة</td></tr>';
+                return;
+            }
+
+            // Render Dashboard Cards
+            let html = '';
+            let printHtml = '';
+
+            filtered.forEach(item => {
+                const badgeInfo = getStatusBadgeInfo(item.status);
+                const dateFormatted = formatDate(item.submittedAt);
+
+                html += `
+                    <div class="bg-white p-5 rounded-3xl border border-slate-200/80 custom-shadow card-hover space-y-3.5 print-break">
+                        
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-slate-100 pb-3">
+                            <div class="flex items-center gap-3">
+                                <span class="w-9 h-9 rounded-2xl bg-teal-50 text-teal-700 flex items-center justify-center font-bold text-xs shrink-0">
+                                    <i class="fa-regular fa-user"></i>
+                                </span>
+                                <div>
+                                    <h4 class="font-bold text-slate-800 text-sm sm:text-base">${escapeHtml(item.patientName)}</h4>
+                                    <div class="flex items-center gap-2 text-xs text-slate-400">
+                                        <span>الرقم الوطني: <strong class="font-mono text-slate-700">${item.nationalId}</strong></span>
+                                        <span>•</span>
+                                        <span class="text-[11px]">${dateFormatted}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center gap-2">
+                                <span class="px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 ${badgeInfo.badgeClass}">
+                                    <i class="fa-solid ${badgeInfo.icon}"></i>
+                                    <span>${badgeInfo.text}</span>
+                                </span>
+                                <span class="text-[10px] font-mono text-slate-400 bg-slate-100 px-2 py-0.5 rounded-md">${item.id}</span>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                            <div class="bg-slate-50 p-3 rounded-2xl border border-slate-100">
+                                <span class="text-slate-400 font-bold block text-[10px] uppercase">العيادة المعالجة:</span>
+                                <span class="font-extrabold text-teal-900 text-xs sm:text-sm mt-0.5 block">${item.clinicName}</span>
+                            </div>
+                            <div class="bg-slate-50 p-3 rounded-2xl border border-slate-100">
+                                <span class="text-slate-400 font-bold block text-[10px] uppercase">تفاصيل العلاج المطلوب:</span>
+                                <span class="font-semibold text-slate-800 text-xs mt-0.5 block">${escapeHtml(item.medicineName)}</span>
+                            </div>
+                        </div>
+
+                        ${item.replyText ? `
+                            <div class="bg-teal-50/60 p-3.5 rounded-2xl border border-teal-100 text-xs space-y-1">
+                                <span class="font-bold text-teal-800 block text-[11px]">الرد الحالي المسجل للمريض:</span>
+                                <p class="text-slate-800 font-medium">${escapeHtml(item.replyText)}</p>
+                            </div>
+                        ` : ''}
+
+                        <div class="flex justify-end pt-1">
+                            <button onclick="openReplyModal('${item.id}')" 
+                                    class="px-5 py-2.5 ${item.status === 'PENDING' ? 'gradient-teal text-white' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'} font-bold rounded-2xl text-xs transition-all flex items-center gap-2 shadow-sm">
+                                <i class="fa-solid ${item.status === 'PENDING' ? 'fa-reply' : 'fa-pen-to-square'}"></i>
+                                <span>${item.status === 'PENDING' ? 'الرد وإغلاق الطلب' : 'تعديل الرد الحالي'}</span>
+                            </button>
+                        </div>
+
+                    </div>
+                `;
+
+                // Printable Row
+                printHtml += `
+                    <tr>
+                        <td class="border border-slate-300 p-2 font-mono">${item.id}</td>
+                        <td class="border border-slate-300 p-2">${escapeHtml(item.patientName)}</td>
+                        <td class="border border-slate-300 p-2 font-mono">${item.nationalId}</td>
+                        <td class="border border-slate-300 p-2">${item.clinicName}</td>
+                        <td class="border border-slate-300 p-2">${escapeHtml(item.medicineName)}</td>
+                        <td class="border border-slate-300 p-2 font-bold">${badgeInfo.text}</td>
+                        <td class="border border-slate-300 p-2">${escapeHtml(item.replyText || 'بانتظار الرد')}</td>
+                    </tr>
+                `;
+            });
+
+            listContainer.innerHTML = html;
+            printTableBody.innerHTML = printHtml;
+        }
+
+        function openReplyModal(id) {
+            activeInquiryId = id;
+            const item = inquiries.find(i => i.id === id);
+            if (!item) return;
+
+            const summaryDiv = document.getElementById('modal-patient-summary');
+            summaryDiv.innerHTML = `
+                <div class="flex justify-between items-center border-b border-slate-200 pb-2">
+                    <span class="font-extrabold text-slate-800">${escapeHtml(item.patientName)}</span>
+                    <span class="font-mono text-slate-500 font-semibold">${item.nationalId}</span>
+                </div>
+                <p><strong>العيادة:</strong> ${item.clinicName}</p>
+                <p><strong>الدواء/الوصفة:</strong> ${escapeHtml(item.medicineName)}</p>
+            `;
+
+            document.getElementById('modal-reply-text').value = item.replyText || '';
+            document.getElementById('modal-status-select').value = item.status === 'PENDING' ? 'AVAILABLE' : item.status;
+
+            document.getElementById('reply-modal').classList.remove('hidden');
+        }
+
+        function closeReplyModal() {
+            document.getElementById('reply-modal').classList.add('hidden');
+            activeInquiryId = null;
+        }
+
+        function applyQuickTemplate(type) {
+            const textarea = document.getElementById('modal-reply-text');
+            const select = document.getElementById('modal-status-select');
+
+            if (type === 'AVAILABLE') {
+                textarea.value = "متوفر في صيدلية العيادات الفرعية، يمكنك المراجعة لاستلامه.";
+                select.value = 'AVAILABLE';
+            } else if (type === 'UNAVAILABLE') {
+                textarea.value = "غير متوفر حالياً - يرجى مراجعة الطبيب المعالج للبديل.";
+                select.value = 'UNAVAILABLE';
+            } else if (type === 'MAIN_PHARMACY') {
+                textarea.value = "العلاج متوفر في صيدلية العيادات الخارجية الرئيسية وليس الفرعية.";
+                select.value = 'REDIRECTED';
+            } else if (type === 'ALT_AVAILABLE') {
+                textarea.value = "متوفر البديل المعتمد التالي: [ادخل اسم البديل هنا]";
+                select.value = 'AVAILABLE';
+            }
+        }
+
+        function savePharmacistReply() {
+            if (!activeInquiryId) return;
+
+            const replyText = document.getElementById('modal-reply-text').value.trim();
+            const statusSelect = document.getElementById('modal-status-select').value;
+
+            if (!replyText) {
+                showToast('يرجى كتابة نص الرد للمريض أو اختيار قالب سريع', 'error');
+                return;
+            }
+
+            const index = inquiries.findIndex(i => i.id === activeInquiryId);
+            if (index !== -1) {
+                inquiries[index].replyText = replyText;
+                inquiries[index].status = statusSelect;
+                inquiries[index].repliedAt = new Date().toISOString();
+
+                saveInquiriesToStorage();
+                renderPharmacistDashboard();
+                closeReplyModal();
+                showToast('تم حفظ الرد وتحديث حالة الطلب بنجاح', 'success');
+            }
+        }
+
+        function getStatusBadgeInfo(status) {
+            switch(status) {
+                case 'AVAILABLE':
+                    return {
+                        text: 'متوفر بالصيدلية',
+                        badgeClass: 'bg-emerald-100 text-emerald-800 border border-emerald-300',
+                        bgClass: 'bg-emerald-50/40',
+                        borderClass: 'border-emerald-200',
+                        icon: 'fa-circle-check text-emerald-600'
+                    };
+                case 'UNAVAILABLE':
+                    return {
+                        text: 'غير متوفر',
+                        badgeClass: 'bg-rose-100 text-rose-800 border border-rose-300',
+                        bgClass: 'bg-rose-50/40',
+                        borderClass: 'border-rose-200',
+                        icon: 'fa-circle-xmark text-rose-600'
+                    };
+                case 'REDIRECTED':
+                    return {
+                        text: 'توجيه / رئيسية',
+                        badgeClass: 'bg-sky-100 text-sky-800 border border-sky-300',
+                        bgClass: 'bg-sky-50/40',
+                        borderClass: 'border-sky-200',
+                        icon: 'fa-hospital-user text-sky-600'
+                    };
+                default:
+                    return {
+                        text: 'قيد الانتظار',
+                        badgeClass: 'bg-amber-100 text-amber-800 border border-amber-300 animate-pulse-slow',
+                        bgClass: 'bg-amber-50/40',
+                        borderClass: 'border-amber-200',
+                        icon: 'fa-clock text-amber-600'
+                    };
+            }
+        }
+
+        function exportToCSV() {
+            if (inquiries.length === 0) {
+                showToast('لا توجد بيانات متاحة للتصدير', 'error');
+                return;
+            }
+
+            // UTF-8 BOM for Arabic text support in Excel
+            let csv = "\uFEFF";
+            csv += "رقم الطلب,اسم المريض,الرقم الوطني,العيادة الفرعية,الدواء المطلوب,حالة التوفر,رد الصيدلي,تاريخ الطلب\n";
+
+            inquiries.forEach(i => {
+                const badgeInfo = getStatusBadgeInfo(i.status);
+                const name = `"${i.patientName.replace(/"/g, '""')}"`;
+                const clinic = `"${i.clinicName.replace(/"/g, '""')}"`;
+                const med = `"${i.medicineName.replace(/"/g, '""')}"`;
+                const reply = `"${(i.replyText || '').replace(/"/g, '""')}"`;
+                const date = `"${new Date(i.submittedAt).toLocaleString('ar-JO')}"`;
+
+                csv += `${i.id},${name},'${i.nationalId}',${clinic},${med},${badgeInfo.text},${reply},${date}\n`;
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+            link.setAttribute("download", `تقرير_صيدلية_العيادات_الفرعية_${new Date().toISOString().slice(0,10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            showToast('تم تصدير ملف Excel للطلبات بنجاح', 'success');
+        }
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+
+            const bgClass = type === 'success' ? 'bg-slate-900 text-emerald-400 border-emerald-500' :
+                            type === 'error' ? 'bg-slate-900 text-rose-400 border-rose-500' : 'bg-slate-900 text-sky-400 border-sky-500';
+            const icon = type === 'success' ? 'fa-circle-check' :
+                         type === 'error' ? 'fa-circle-exclamation' : 'fa-circle-info';
+
+            toast.className = `p-4 rounded-2xl shadow-2xl border-l-4 ${bgClass} text-xs font-bold flex items-center gap-3 transition-all duration-300 transform translate-y-3 pointer-events-auto`;
+            toast.innerHTML = `<i class="fa-solid ${icon} text-lg"></i><span class="text-white">${message}</span>`;
+
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                setTimeout(() => toast.remove(), 300);
+            }, 3500);
+        }
+
+        /* Helper Functions */
+        function formatDate(isoString) {
+            if (!isoString) return '';
+            const d = new Date(isoString);
+            return d.toLocaleString('ar-JO', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            return text
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+    </script>
+</body>
+</html>
